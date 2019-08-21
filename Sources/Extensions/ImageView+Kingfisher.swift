@@ -31,8 +31,8 @@ import AppKit
 import UIKit
 #endif
 
+/// 处理ImageView 图片的loading
 extension KingfisherWrapper where Base: ImageView {
-
     @discardableResult
     public func setImage(
         with source: Source?,
@@ -42,42 +42,53 @@ extension KingfisherWrapper where Base: ImageView {
         completionHandler: ((Result<RetrieveImageResult, KingfisherError>) -> Void)? = nil) -> DownloadTask?
     {
         var mutatingSelf = self
+        // 这里判断一下请求的source 是否存在  不存在的话 设置placeholder ，taskIdentifier 设置为nil 直接调用completionHandler 完成请求 （设置请求失败 设置错误类型为 source为empty）
         guard let source = source else {
             mutatingSelf.placeholder = placeholder
             mutatingSelf.taskIdentifier = nil
             completionHandler?(.failure(KingfisherError.imageSettingError(reason: .emptySource)))
             return nil
         }
-
+        
+        // 设置请求的option
         var options = KingfisherParsedOptionsInfo(KingfisherManager.shared.defaultOptions + (options ?? .empty))
+        // 判断imageView是否有image 或者 是否设置了 placeholder
         let noImageOrPlaceholderSet = base.image == nil && self.placeholder == nil
         if !options.keepCurrentImageWhileLoading || noImageOrPlaceholderSet {
             // Always set placeholder while there is no image/placeholder yet.
             mutatingSelf.placeholder = placeholder
         }
-
+        
+        // 指示器 （loading 图标）
         let maybeIndicator = indicator
         maybeIndicator?.startAnimatingView()
 
+        /// 任务标识符
         let issuedIdentifier = SourceIdentifier.next()
         mutatingSelf.taskIdentifier = issuedIdentifier
 
         if base.shouldPreloadAllAnimation() {
             options.preloadAllAnimationData = true
         }
-
+        
+        /// 检索图像task
         let task = KingfisherManager.shared.retrieveImage(
             with: source,
             options: options,
-            progressBlock: { receivedSize, totalSize in
+            
+            progressBlock: { receivedSize, totalSize in    /// 这里是进度的回调  receivedSize 接收的size  totalSize 总size
                 guard issuedIdentifier == self.taskIdentifier else { return }
+                
                 if let progressBlock = progressBlock {
                     progressBlock(receivedSize, totalSize)
                 }
             },
-            completionHandler: { result in
+            completionHandler: { result in  /// 完成回调
+                /// 在主线程中执行 result回调 （CallbackQueue 是枚举 ，execute是枚举里面的方法 ）
                 CallbackQueue.mainCurrentOrAsync.execute {
+                    /// 停止指示器
                     maybeIndicator?.stopAnimatingView()
+                    /// 如果taskIdentifier 不存在 执行completionHandler()回调 在里面报错
                     guard issuedIdentifier == self.taskIdentifier else {
                         let error = KingfisherError.imageSettingError(
                             reason: .notCurrentSourceTask(result: result.value, error: result.error, source: source))
@@ -136,6 +147,7 @@ extension KingfisherWrapper where Base: ImageView {
     /// or network. Since this method will perform UI changes, you must call it from the main thread.
     /// Both `progressBlock` and `completionHandler` will be also executed in the main thread.
     ///
+    
     @discardableResult
     public func setImage(
         with resource: Resource?,

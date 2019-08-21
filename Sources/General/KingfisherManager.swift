@@ -35,14 +35,14 @@ public typealias DownloadProgressBlock = ((_ receivedSize: Int64, _ totalSize: I
 
 /// Represents the result of a Kingfisher retrieving image task.
 public struct RetrieveImageResult {
-
+    
     /// Gets the image object of this result.
     public let image: Image
-
+    
     /// Gets the cache source of the image. It indicates from which layer of cache this image is retrieved.
     /// If the image is just downloaded from network, `.none` will be returned.
     public let cacheType: CacheType
-
+    
     /// The `Source` from which the retrieve task begins.
     public let source: Source
 }
@@ -50,6 +50,7 @@ public struct RetrieveImageResult {
 /// Main manager class of Kingfisher. It connects Kingfisher downloader and cache,
 /// to provide a set of convenience methods to use Kingfisher for tasks.
 /// You can use this class to retrieve an image via a specified URL from web or cache.
+/// KingfisherManager 类
 public class KingfisherManager {
     
     /// Represents a shared manager used across Kingfisher.
@@ -59,11 +60,13 @@ public class KingfisherManager {
     /// The `ImageCache` used by this manager. It is `ImageCache.default` by default.
     /// If a cache is specified in `KingfisherManager.defaultOptions`, the value in `defaultOptions` will be
     /// used instead.
+    /// 缓存
     public var cache: ImageCache
     
     /// The `ImageDownloader` used by this manager. It is `ImageDownloader.default` by default.
     /// If a downloader is specified in `KingfisherManager.defaultOptions`, the value in `defaultOptions` will be
     /// used instead.
+    /// 下载器
     public var downloader: ImageDownloader
     
     /// Default options used by the manager. This option will be used in
@@ -71,13 +74,15 @@ public class KingfisherManager {
     /// You can also passing other options for each image task by sending an `options` parameter
     /// to Kingfisher's APIs. The per image options will overwrite the default ones,
     /// if the option exists in both.
+    /// 默认请求设置
     public var defaultOptions = KingfisherOptionsInfo.empty
     
     // Use `defaultOptions` to overwrite the `downloader` and `cache`.
     private var currentDefaultOptions: KingfisherOptionsInfo {
         return [.downloader(downloader), .targetCache(cache)] + defaultOptions
     }
-
+    
+    /// 进度队列
     private let processingQueue: CallbackQueue
     
     private convenience init() {
@@ -87,11 +92,11 @@ public class KingfisherManager {
     init(downloader: ImageDownloader, cache: ImageCache) {
         self.downloader = downloader
         self.cache = cache
-
+        
         let processQueueName = "com.onevcat.Kingfisher.KingfisherManager.processQueue.\(UUID().uuidString)"
         processingQueue = .dispatch(DispatchQueue(label: processQueueName))
     }
-
+    
     /// Gets an image from a given resource.
     ///
     /// - Parameters:
@@ -122,7 +127,7 @@ public class KingfisherManager {
             with: source, options: options, progressBlock: progressBlock, completionHandler: completionHandler
         )
     }
-
+    
     /// Gets an image from a given resource.
     ///
     /// - Parameters:
@@ -155,16 +160,20 @@ public class KingfisherManager {
             completionHandler: completionHandler)
     }
     
+    ///检索图片
     func retrieveImage(
         with source: Source,
         options: KingfisherParsedOptionsInfo,
         progressBlock: DownloadProgressBlock? = nil,
         completionHandler: ((Result<RetrieveImageResult, KingfisherError>) -> Void)?) -> DownloadTask?
     {
+        /// 是否强制刷新
         if options.forceRefresh {
+            /// 从网络下载 并缓存图片
             return loadAndCacheImage(
                 source: source, options: options, progressBlock: progressBlock, completionHandler: completionHandler)
         } else {
+            /// 从cache 检索图片 loadedFromCache == true表示c缓存中存在 否则 缓存中不存在
             let loadedFromCache = retrieveImageFromCache(
                 source: source,
                 options: options,
@@ -174,17 +183,19 @@ public class KingfisherManager {
                 return nil
             }
             
+            /// 如果设置了只从缓存中读取 ，loadedFromCache == false （缓存中又没有） 此时执行completionHandler 并且failure
             if options.onlyFromCache {
                 let error = KingfisherError.cacheError(reason: .imageNotExisting(key: source.cacheKey))
                 completionHandler?(.failure(error))
                 return nil
             }
             
+            /// 从网络下载 并缓存图片
             return loadAndCacheImage(
                 source: source, options: options, progressBlock: progressBlock, completionHandler: completionHandler)
         }
     }
-
+    
     func provideImage(
         provider: ImageDataProvider,
         options: KingfisherParsedOptionsInfo,
@@ -216,11 +227,12 @@ public class KingfisherManager {
                         .failure(.imageSettingError(reason: .dataProviderError(provider: provider, error: error)))
                     )
                 }
-
+                
             }
         }
     }
-
+    
+    /// 从网络下载图片 并缓存起来
     @discardableResult
     func loadAndCacheImage(
         source: Source,
@@ -228,6 +240,7 @@ public class KingfisherManager {
         progressBlock: DownloadProgressBlock? = nil,
         completionHandler: ((Result<RetrieveImageResult, KingfisherError>) -> Void)?) -> DownloadTask?
     {
+        /// 缓存图片
         func cacheImage(_ result: Result<ImageLoadingResult, KingfisherError>)
         {
             switch result {
@@ -247,7 +260,7 @@ public class KingfisherManager {
                         completionHandler?(.success(result))
                     }
                 }
-
+                
                 // Add original image to cache if necessary.
                 let needToCacheOriginalImage = options.cacheOriginalImage &&
                     options.processor != DefaultImageProcessor.default
@@ -259,7 +272,7 @@ public class KingfisherManager {
                         processorIdentifier: DefaultImageProcessor.default.identifier,
                         expiration: options.diskCacheExpiration)
                 }
-
+                
                 if !options.waitForCache {
                     let result = RetrieveImageResult(image: value.image, cacheType: .none, source: source)
                     completionHandler?(.success(result))
@@ -268,16 +281,16 @@ public class KingfisherManager {
                 completionHandler?(.failure(error))
             }
         }
-
+        
         switch source {
-        case .network(let resource):
+        case .network(let resource): /// 从网络下载
             let downloader = options.downloader ?? self.downloader
             return downloader.downloadImage(
                 with: resource.downloadURL,
                 options: options,
                 progressBlock: progressBlock,
                 completionHandler: cacheImage)
-        case .provider(let provider):
+        case .provider(let provider): /// 从本地读取
             provideImage(provider: provider, options: options, completionHandler: cacheImage)
             return nil
         }
@@ -302,14 +315,17 @@ public class KingfisherManager {
     ///    will try to check whether an original version of that image is existing or not. If there is already an
     ///    original, Kingfisher retrieves it from cache and processes it. Then, the processed image will be store
     ///    back to cache for later use.
+    /// 从缓存中获取图片
     func retrieveImageFromCache(
         source: Source,
         options: KingfisherParsedOptionsInfo,
         completionHandler: ((Result<RetrieveImageResult, KingfisherError>) -> Void)?) -> Bool
     {
         // 1. Check whether the image was already in target cache. If so, just get it.
+        /// 检查image 是否已经存在缓存中了 如果存在直接获取
         let targetCache = options.targetCache ?? cache
         let key = source.cacheKey
+        
         let targetImageCached = targetCache.imageCachedType(
             forKey: key, processorIdentifier: options.processor.identifier)
         
@@ -328,14 +344,15 @@ public class KingfisherManager {
             }
             return true
         }
-
+        
         // 2. Check whether the original image exists. If so, get it, process it, save to storage and return.
+        /// 检查原始图像是否存在。如果是这样的话，得到它，处理它，保存到存储并返回。
         let originalCache = options.originalCache ?? targetCache
         // No need to store the same file in the same cache again.
         if originalCache === targetCache && options.processor == DefaultImageProcessor.default {
             return false
         }
-
+        
         // Check whether the unprocessed image existing or not.
         let originalImageCached = originalCache.imageCachedType(
             forKey: key, processorIdentifier: DefaultImageProcessor.default.identifier).cached
@@ -351,11 +368,11 @@ public class KingfisherManager {
                         let item = ImageProcessItem.image(image)
                         guard let processedImage = processor.process(item: item, options: options) else {
                             let error = KingfisherError.processorError(
-                                            reason: .processingFailed(processor: processor, item: item))
+                                reason: .processingFailed(processor: processor, item: item))
                             completionHandler?(.failure(error))
                             return
                         }
-
+                        
                         var cacheOptions = options
                         cacheOptions.callbackQueue = .untouch
                         targetCache.store(
@@ -370,7 +387,7 @@ public class KingfisherManager {
                                 completionHandler?(.success(value))
                             }
                         }
-
+                        
                         if !options.waitForCache {
                             let value = RetrieveImageResult(image: processedImage, cacheType: .none, source: source)
                             completionHandler?(.success(value))
@@ -384,8 +401,9 @@ public class KingfisherManager {
             }
             return true
         }
-
+        
         return false
-
+        
     }
 }
+

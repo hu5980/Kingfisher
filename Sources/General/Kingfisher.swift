@@ -27,6 +27,7 @@
 import Foundation
 import ImageIO
 
+///根据不同的平台 定义不同的类型
 #if os(macOS)
 import AppKit
 public typealias Image = NSImage
@@ -49,6 +50,7 @@ import WatchKit
 
 /// Wrapper for Kingfisher compatible types. This type provides an extension point for
 /// connivence methods in Kingfisher.
+/// 创建Base 类的一个对象
 public struct KingfisherWrapper<Base> {
     public let base: Base
     public init(_ base: Base) {
@@ -58,8 +60,10 @@ public struct KingfisherWrapper<Base> {
 
 /// Represents a type which is compatible with Kingfisher. You can use `kf` property to get a
 /// value in the namespace of Kingfisher.
+/// 定义KingfisherCompatible 这样的协议
 public protocol KingfisherCompatible { }
 
+/// 实现KingfisherCompatible 协议的延展
 public extension KingfisherCompatible {
     
     /// Gets a namespace holder for Kingfisher compatible types.

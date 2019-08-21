@@ -30,6 +30,7 @@ import Foundation
 /// `Source.provider` source. Compared to `Source.network` member, it gives a chance
 /// to load some image data in your own way, as long as you can provide the data
 /// representation for the image.
+/// ImageDataProvider 图片数据提供协议
 public protocol ImageDataProvider {
     
     /// The key used in cache.

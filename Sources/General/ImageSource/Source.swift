@@ -27,6 +27,7 @@
 import Foundation
 
 /// Represents the source task identifier when setting an image to a view with extension methods.
+/// 将图像设置为具有扩展方法的视图时，表示源任务标识符。
 public enum SourceIdentifier {
     
     /// The underlying value type of source identifier.
@@ -49,10 +50,12 @@ public enum SourceIdentifier {
 public enum Source {
     /// The target image should be got from network remotely. The associated `Resource`
     /// value defines detail information like image URL and cache key.
+    /// 从网络获取图片
     case network(Resource)
     
     /// The target image should be provided in a data format. Normally, it can be an image
     /// from local storage or in any other encoding format (like Base64).
+    /// 本地提供图片 
     case provider(ImageDataProvider)
     
     /// The cache key defined for this source value.

@@ -73,6 +73,7 @@ class ProcessorCollectionViewController: UICollectionViewController {
         if currentProcessor is RoundCornerImageProcessor {
             options.append(.cacheSerializer(FormatIndicatedCacheSerializer.png))
         }
+        
         cell.cellImageView.kf.setImage(with: url, options: options) { result in
             print(result)
         }

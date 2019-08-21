@@ -29,18 +29,21 @@ import Foundation
 /// Represents an image resource at a certain url and a given cache key.
 /// Kingfisher will use a `Resource` to download a resource from network and cache it with the cache key when
 /// using `Source.network` as its image setting source.
+
+/// Resource 协议
 public protocol Resource {
     
-    /// The key used in cache.
+    /// The key used in cache.   缓存的key
     var cacheKey: String { get }
     
-    /// The target image URL.
+    /// The target image URL.    下载的url
     var downloadURL: URL { get }
 }
 
 /// ImageResource is a simple combination of `downloadURL` and `cacheKey`.
 /// When passed to image view set methods, Kingfisher will try to download the target
 /// image from the `downloadURL`, and then store it with the `cacheKey` as the key in cache.
+/// ImageResource 需要实现Resource 协议 ImageResource 初始化的时候必须设置downloadURL 以及 cacheKey
 public struct ImageResource: Resource {
     
     /// The key used in cache.
@@ -59,7 +62,7 @@ public struct ImageResource: Resource {
         self.downloadURL = downloadURL
         self.cacheKey = cacheKey ?? downloadURL.absoluteString
     }
-}
+} 
 
 /// URL conforms to `Resource` in Kingfisher.
 /// The `absoluteString` of this URL is used as `cacheKey`. And the URL itself will be used as `downloadURL`.
