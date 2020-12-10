@@ -34,7 +34,7 @@ import UIKit
 public struct ImageLoadingResult {
 
     /// The downloaded image.
-    public let image: Image
+    public let image: KFCrossPlatformImage
 
     /// Original URL of the image request.
     public let url: URL?
@@ -186,7 +186,7 @@ open class ImageDownloader {
             }
         }
         sessionDelegate.onDidDownloadData.delegate(on: self) { (self, task) in
-            guard let url = task.task.originalRequest?.url else {
+            guard let url = task.originalURL else {
                 return task.mutableData
             }
             return (self.delegate ?? self).imageDownloader(self, didDownload: task.mutableData, for: url)
